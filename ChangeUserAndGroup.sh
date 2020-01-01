@@ -1,65 +1,40 @@
 #!/bin/bash
 changeId() {
-if [ "$1" = 1 ]; then
-        read -rp "Enter the group user name: " changeUser
-        if [ -z "$changeUser" ]; then
-            exit 1
-        fi
-    while true; do
-        if getent passwd "$changeUser" &>/dev/null; then
-            sudo chown "$changeUser" "$file"
-            echo "User $changeUser is changed"
-            break
-        else
-            echo "User $changeUser does not exist"
-            createNewId "$@"
-            break
-        fi
-    done
-fi
-if [ "$1" = 2 ]; then
-        read -rp "Enter the group name: " changeGroup
-        if [ -z "$changeGroup" ]; then
-            exit 1
-        fi
-    while true; do
-        if getent group "$changeGroup" &>/dev/null; then
-            sudo chgrp "$changeGroup" "$file" 
-            echo "Group $changeGroup is changed"
-            break
-        else
-            echo "Group $changeGroup does not exist"
-            createNewId "$@"
-            break
-        fi
-    done
-fi
+    if test "$1" -eq 1; then
+        id='user'; database='passwd'; cmd='chown'
+    else
+        id='group'; database='group'; cmd='chgrp'
+    fi
+
+    read -rp "Enter the $id name: " idName
+    if [ -z "$idName" ]; then
+        exit 1
+    fi
+    if ! getent "$database" "$idName" &>/dev/null; then
+        echo "${id^} $idName does not exist"
+        createNewId "$1" "$idName"
+    fi
+  
+    sudo "$cmd" "$idName" "$file" &>/dev/null
+    echo "${id^} $idName is changed"
 }
 createNewId() {
-if [ "$1" = 1 ]; then
-    while true; do
-        read -rp "Do you want create a new user $changeUser ? (y/n): " yn
-        if [[ $yn == @(y|yes) ]]; then
-                sudo adduser "$changeUser"
-                echo "User $changeUser create"
-                break
-        elif [[ $yn == @(n|no) ]]; then break
-        else break
-        fi    
-    done
-fi
-if [ "$1" = 2 ]; then
-    while true; do
-        read -rp "Do you want create a new group $changeGroup ? (y/n): " yn
-        if [[ $yn == @(y|yes) ]]; then
-                sudo groupadd "$changeGroup" 
-                echo "Group $changeGroup create"
-                break 
-        elif [[ $yn == @(n|no) ]]; then break 
-        else break      
-        fi
-    done
-fi
+    if test "$1" -eq 1; then
+        idAdd=$2;  cmdAdd='adduser'
+    else
+        idAdd=$2;  cmdAdd='groupadd'
+    fi 
+
+    read -rp "Do you want create a new user $idAdd ? (y/n): " yn 
+    if [ -z "$yn" ]; then
+        exit 1
+    fi
+    if [[ $yn == @(y|yes) ]]; then
+            sudo "$cmdAdd" "$idAdd" 
+            echo "User $idAdd create"
+            return 0
+    elif [[ $yn == @(n|no) ]]; then return 0
+    fi  
 }
 while true; do
     read -rp "Enter the name of the file to change: " file
@@ -72,13 +47,13 @@ while true; do
         echo "$file file not found."    
     fi
 done
-echo "1. Change user"
-echo "2. Change group"
+printf '%s\n' "1. Change user" "2. Change group" "q. Quit"
 while true; do
 	read -rp "What do you want to change the USER or GROUP: " choose
 	case $choose in
 	'') exit 1 ;;
 	'1'|'2') changeId "$choose" ;;
+    'q') exit 0 ;;
 	*) echo 'Please, choose 1, 2 or leave empty.' ;;
 	esac
 done
