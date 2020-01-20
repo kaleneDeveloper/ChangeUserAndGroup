@@ -12,7 +12,7 @@ changeId() {
     fi
     if ! getent "$database" "$idName" &>/dev/null; then
         echo "${id^} $idName does not exist"
-        createNewId "$1" "$idName"
+        createNewId "$1" "$idName" || return 1
     fi
   
     sudo "$cmd" "$idName" "$file" &>/dev/null
@@ -20,20 +20,15 @@ changeId() {
 }
 createNewId() {
     if test "$1" -eq 1; then
-        idAdd=$2;  cmdAdd='adduser'
+        id='user';  cmd='adduser'
     else
-        idAdd=$2;  cmdAdd='groupadd'
+        id='group';  cmd='groupadd'
     fi 
 
-    read -rp "Do you want create a new user $idAdd ? (y/n): " yn 
-    if [ -z "$yn" ]; then
-        exit 1
-    fi
+    read -rp "Do you want create a new $1 $2 ? (y/n): " yn 
     if [[ $yn == @(y|yes) ]]; then
-            sudo "$cmdAdd" "$idAdd" 
-            echo "User $idAdd create"
-            return 0
-    elif [[ $yn == @(n|no) ]]; then return 0
+            sudo "$cmd" "$2" && echo "${id^} $2 create"
+    else return 1
     fi  
 }
 while true; do
