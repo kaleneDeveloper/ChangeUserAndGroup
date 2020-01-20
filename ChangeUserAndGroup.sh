@@ -52,3 +52,4 @@ while true; do
 	*) echo 'Please, choose 1, 2 or leave empty.' ;;
 	esac
 done
+#
